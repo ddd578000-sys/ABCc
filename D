@@ -1,0 +1,523 @@
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+
+local Window = Rayfield:CreateWindow({
+	Name = "Player Control",
+	LoadingTitle = "Loading...",
+	LoadingSubtitle = "Roblox Studio",
+	ConfigurationSaving = {
+		Enabled = false
+	}
+})
+
+
+local WalkSpeed = 16
+local JumpPower = 50
+local FlySpeed = 50
+
+local NoClip = false
+local Fly = false
+
+
+local function Character()
+	return player.Character or player.CharacterAdded:Wait()
+end
+
+
+local function Humanoid()
+	return Character():WaitForChild("Humanoid")
+end
+
+
+
+-- PLAYER TAB
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+
+
+PlayerTab:CreateSlider({
+	Name = "Walk Speed",
+	Range = {16,100},
+	Increment = 1,
+	CurrentValue = 16,
+
+	Callback = function(Value)
+		WalkSpeed = Value
+
+		local hum = Humanoid()
+		hum.WalkSpeed = Value
+	end,
+})
+
+
+PlayerTab:CreateSlider({
+	Name = "High Jump",
+	Range = {50,200},
+	Increment = 5,
+	CurrentValue = 50,
+
+	Callback = function(Value)
+
+		JumpPower = Value
+
+		local hum = Humanoid()
+		hum.JumpPower = Value
+
+	end,
+})
+
+
+
+-- NOCLIP
+
+PlayerTab:CreateToggle({
+	Name = "NoClip",
+	CurrentValue = false,
+
+	Callback = function(Value)
+		NoClip = Value
+	end,
+})
+
+
+RunService.Stepped:Connect(function()
+
+	if NoClip then
+
+		local char = player.Character
+
+		if char then
+
+			for _,v in pairs(char:GetDescendants()) do
+
+				if v:IsA("BasePart") then
+					v.CanCollide = false
+				end
+
+			end
+
+		end
+
+	end
+
+end)
+
+
+
+
+-- MOVEMENT TAB
+
+local MoveTab = Window:CreateTab("Movement",4483362458)
+
+
+MoveTab:CreateSlider({
+
+	Name = "Fly Speed",
+
+	Range = {10,200},
+
+	Increment = 5,
+
+	CurrentValue = 50,
+
+
+	Callback = function(Value)
+
+		FlySpeed = Value
+
+	end,
+
+})
+
+
+
+MoveTab:CreateToggle({
+
+	Name = "Fly",
+
+	CurrentValue = false,
+
+
+	Callback = function(Value)
+
+		Fly = Value
+
+
+		local char = Character()
+		local root = char:WaitForChild("HumanoidRootPart")
+
+
+		if Fly then
+
+
+			local bv = Instance.new("BodyVelocity")
+
+			bv.Name = "FlyVelocity"
+
+			bv.MaxForce = Vector3.new(
+				999999,
+				999999,
+				999999
+			)
+
+			bv.Parent = root
+
+
+
+			local connection
+
+			connection = RunService.RenderStepped:Connect(function()
+
+				if not Fly then
+
+					connection:Disconnect()
+
+					if bv then
+						bv:Destroy()
+					end
+
+					return
+
+				end
+
+
+				local cam = workspace.CurrentCamera
+
+				bv.Velocity =
+					cam.CFrame.LookVector * FlySpeed
+
+			end)
+
+
+		else
+
+			local fly = root:FindFirstChild("FlyVelocity")
+
+			if fly then
+				fly:Destroy()
+			end
+
+		end
+
+	end,
+
+})
+
+
+
+Rayfield:Notify({
+	Title="Loaded",
+	Content="Player System Ready",
+	Duration=3
+})
+-- VISUAL TAB
+
+local VisualTab = Window:CreateTab("Visual",4483362458)
+
+local ESP = false
+local FOVEnabled = false
+local FOVSize = 150
+
+
+-- ESP SYSTEM
+
+local function AddESP(plr)
+
+	if plr == player then
+		return
+	end
+
+	local function CharacterAdded(char)
+
+		if ESP then
+
+			local old = char:FindFirstChild("PlayerESP")
+
+			if not old then
+
+				local highlight = Instance.new("Highlight")
+
+				highlight.Name = "PlayerESP"
+
+				highlight.FillTransparency = 0.5
+
+				highlight.OutlineTransparency = 0
+
+				highlight.Parent = char
+
+			end
+
+		end
+
+	end
+
+
+	if plr.Character then
+		CharacterAdded(plr.Character)
+	end
+
+
+	plr.CharacterAdded:Connect(CharacterAdded)
+
+end
+
+
+
+for _,plr in pairs(Players:GetPlayers()) do
+	AddESP(plr)
+end
+
+
+Players.PlayerAdded:Connect(AddESP)
+
+
+
+VisualTab:CreateToggle({
+
+	Name="ESP Player",
+
+	CurrentValue=false,
+
+
+	Callback=function(Value)
+
+		ESP = Value
+
+
+		for _,plr in pairs(Players:GetPlayers()) do
+
+			if plr.Character then
+
+				local esp = plr.Character:FindFirstChild("PlayerESP")
+
+
+				if Value then
+
+					if not esp then
+
+						local h = Instance.new("Highlight")
+
+						h.Name="PlayerESP"
+
+						h.FillTransparency=0.5
+
+						h.Parent=plr.Character
+
+					end
+
+
+				else
+
+					if esp then
+						esp:Destroy()
+					end
+
+				end
+
+			end
+
+		end
+
+	end,
+
+})
+
+
+
+
+
+-- FOV CIRCLE
+
+local Circle = Drawing.new("Circle")
+
+Circle.Visible = false
+
+Circle.Radius = FOVSize
+
+Circle.Thickness = 2
+
+Circle.NumSides = 100
+
+Circle.Filled = false
+
+
+
+RunService.RenderStepped:Connect(function()
+
+	local camera = workspace.CurrentCamera
+
+	Circle.Position =
+		Vector2.new(
+			camera.ViewportSize.X/2,
+			camera.ViewportSize.Y/2
+		)
+
+
+	Circle.Radius = FOVSize
+
+	Circle.Visible = FOVEnabled
+
+end)
+
+
+
+VisualTab:CreateToggle({
+
+	Name="Aimbot FOV Circle",
+
+	CurrentValue=false,
+
+
+	Callback=function(Value)
+
+		FOVEnabled = Value
+
+	end,
+
+})
+
+
+
+VisualTab:CreateSlider({
+
+	Name="FOV Size",
+
+	Range={50,500},
+
+	Increment=10,
+
+	CurrentValue=150,
+
+
+	Callback=function(Value)
+
+		FOVSize = Value
+
+	end,
+
+})
+
+
+
+Rayfield:Notify({
+
+	Title="Visual Loaded",
+
+	Content="ESP + FOV Ready",
+
+	Duration=3
+
+}) -- TEST AIMBOT SYSTEM (Roblox Studio)
+
+local Camera = workspace.CurrentCamera
+
+local Aimbot = false
+local AimbotFOV = 150
+
+
+local function GetClosestTarget()
+
+	local closest = nil
+	local shortest = AimbotFOV
+
+	local center = Vector2.new(
+		Camera.ViewportSize.X / 2,
+		Camera.ViewportSize.Y / 2
+	)
+
+
+	for _,plr in pairs(Players:GetPlayers()) do
+
+		if plr ~= player and plr.Character then
+
+			local head = plr.Character:FindFirstChild("Head")
+
+			if head then
+
+				local screenPos, visible =
+					Camera:WorldToViewportPoint(head.Position)
+
+
+				if visible then
+
+					local distance =
+						(Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+
+
+					if distance < shortest then
+
+						shortest = distance
+						closest = head
+
+					end
+				end
+			end
+		end
+	end
+
+
+	return closest
+end
+
+
+
+RunService.RenderStepped:Connect(function()
+
+	if Aimbot then
+
+		local target = GetClosestTarget()
+
+		if target then
+
+			Camera.CFrame =
+				CFrame.new(
+					Camera.CFrame.Position,
+					target.Position
+				)
+
+		end
+	end
+
+end)
+
+
+
+VisualTab:CreateToggle({
+
+	Name = "Test Aimbot",
+
+	CurrentValue = false,
+
+
+	Callback = function(Value)
+
+		Aimbot = Value
+
+	end
+
+})
+
+
+
+VisualTab:CreateSlider({
+
+	Name = "Aimbot FOV",
+
+	Range = {50,500},
+
+	Increment = 10,
+
+	CurrentValue = 150,
+
+
+	Callback = function(Value)
+
+		AimbotFOV = Value
+
+	end
+
+})
